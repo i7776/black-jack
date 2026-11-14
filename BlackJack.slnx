@@ -1,3 +1,5 @@
 <Solution>
   <Project Path="BlackJack.Client/BlackJack.Client.csproj" />
+  <Project Path="BlackJack.Server/BlackJack.Server.csproj" />
+  <Project Path="BlackJack.Shared/BlackJack.Shared.csproj" />
 </Solution>
