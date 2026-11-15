@@ -6,19 +6,6 @@ public class BlackJackEngine
 {
     private List<Card> _desk = new();
 
-    public int GetValueByRank(string rank)
-    {
-        if (!string.IsNullOrEmpty(rank)) //чисто теоритически прверка не нужна, но я хз
-        {
-            return rank switch
-            {
-                "Ace" => 11,
-                "King" or "Queen" or "Jack" => 10,
-                _ => int.Parse(rank)
-            };
-        }
-        return 0;
-    }
     public void InitialDesk() //нам нужно создать перемешанную колоду хммммммм
     {
         _desk.Clear();
