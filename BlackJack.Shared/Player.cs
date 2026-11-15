@@ -9,7 +9,7 @@ public class Player
     public string Name { get; set; } = string.Empty;
     public string PlayerId { get; set; } = string.Empty;
     public List<Card> Cards { get; set; } = new();
-    public int Score => Cards.Sum(x => x.Value); //кол-во очков сейчас
+    public int Score { get; set; } = 0;
     public PlayerStatus Status { get; set; } = PlayerStatus.Waiting;
 }
 
