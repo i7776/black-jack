@@ -6,7 +6,6 @@ namespace BlackJack.Shared;
 
 public class GameState
 {
-    public string RoomId { get; set; } = string.Empty;
     public List<Player> Players { get; set; } = new();
     public List<Card> DealerCards { get; set; } = new();
     public int DealerScore { get; set; } = 0;
