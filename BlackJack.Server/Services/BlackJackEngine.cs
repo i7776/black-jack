@@ -6,17 +6,19 @@ public class BlackJackEngine
 {
     private List<Card> _desk = new();
 
-    public void InitialDesk() //нам нужно создать перемешанную колоду хммммммм
+    public void InitialDesk() 
     {
         _desk.Clear();
-        string[] suits = { "Hearts", "Diamonds", "Spades", "Clubs" };
-        string[] ranks = { "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace" };
+        var suits = Enum.GetValues<Suit>();
+        var ranks = Enum.GetValues<Rank>();
 
-        _desk = suits.SelectMany(suit => ranks, (suit, rank) => new Card
+        var cards = suits.SelectMany(suit => ranks, (suit, rank) => new Card
         {
             Suit = suit,
-            Rank = rank,
-            Value = GetValueByRank(rank)
-        }).OrderBy(_ => Guid.NewGuid()).ToList();
+            Rank = rank
+        }).ToArray();
+
+        Random.Shared.Shuffle(cards);
+        _desk = cards.ToList();
     }
 }
