@@ -21,4 +21,17 @@ public class BlackJackEngine
         Random.Shared.Shuffle(cards);
         _desk = cards.ToList();
     }
+
+    public int CalculateScore(List<Card> cards)
+    {
+        var scope = cards.Sum(x => x.Value);
+        var ace_count = cards.Count(x => x.Rank == Rank.Ace);
+
+        while (ace_count > 0 && scope > 21)
+        {
+            scope -= 10;
+            --ace_count;
+        }
+        return scope;
+    }
 }
