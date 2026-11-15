@@ -34,4 +34,37 @@ public class BlackJackEngine
         }
         return scope;
     }
+
+    public Card DealCard()
+    {
+        if (_desk.Count == 0)
+        {
+            InitialDesk();
+        }
+        var card = _desk.First();
+        _desk.Remove(card);
+        return card;
+    }
+
+    public void StartNewGame(GameState gameState)
+    {
+        InitialDesk();
+
+        gameState.DealerCards.Clear();
+        gameState.DealerCards.Add(DealCard());
+        gameState.DealerScore = CalculateScore(gameState.DealerCards);
+
+        foreach (var player in gameState.Players)
+        {
+            player.Cards.Clear();
+            player.Score = 0;
+            player.Status = PlayerStatus.Playing; //или waiting или добавляем еще Его ход 
+
+            player.Cards.Add(DealCard());
+            player.Cards.Add(DealCard());
+            player.Score = CalculateScore(player.Cards);
+        }
+
+        gameState.GameStatus = GameStatus.PlayerTurns;
+    }
 }
