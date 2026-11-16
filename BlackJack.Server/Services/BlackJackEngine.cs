@@ -57,14 +57,51 @@ public class BlackJackEngine
         foreach (var player in gameState.Players)
         {
             player.Cards.Clear();
-            player.Score = 0;
-            player.Status = PlayerStatus.Playing; //или waiting или добавляем еще Его ход 
+            player.Score = 0; 
 
             player.Cards.Add(DealCard());
             player.Cards.Add(DealCard());
             player.Score = CalculateScore(player.Cards);
         }
 
-        gameState.GameStatus = GameStatus.PlayerTurns;
+        gameState.GameStatus = GameStatus.PlayersTurns;
+    }
+
+    public void DealerTurn(GameState state)
+    {
+        while (CalculateScore(state.DealerCards) < 17)
+        {
+            state.DealerCards.Add(DealCard());
+        }
+
+        state.GameStatus = GameStatus.Finished;
+
+    }
+
+    public void DetermineWinners(GameState state)
+    {
+        int dealerScore = state.DealerScore;
+
+        foreach (var player in state.Players)
+        {
+            if (player.Status == PlayerStatus.Bust)
+            {
+                player.Status = PlayerStatus.Lost; 
+                continue;
+            }
+
+            if (dealerScore > 21 || player.Score > dealerScore)
+            {
+                player.Status = PlayerStatus.BlackJack;
+            }
+            else if (player.Score < dealerScore)
+            {
+                player.Status = PlayerStatus.Lost;
+            }
+            else
+            {
+                player.Status = PlayerStatus.Draw;
+            }
+        }
     }
 }

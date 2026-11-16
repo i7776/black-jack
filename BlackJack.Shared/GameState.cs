@@ -6,6 +6,7 @@ namespace BlackJack.Shared;
 
 public class GameState
 {
+    public int CurrentPlayerIndex { get; set; } = 0;
     public List<Player> Players { get; set; } = new();
     public List<Card> DealerCards { get; set; } = new();
     public int DealerScore { get; set; } = 0;
@@ -19,7 +20,7 @@ public enum GameStatus
 {
     WaitingForPlayers,
     DealerTurns,
-    PlayerTurns,
+    PlayersTurns,
     Finished
 
 }

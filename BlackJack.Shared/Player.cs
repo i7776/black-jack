@@ -17,5 +17,10 @@ public enum PlayerStatus //пока не понимаю, какие нужны
 {
     Waiting,
     Playing,
-    BlackJack
+    PlayerTurns,
+    Bust,
+    Stand,
+    BlackJack,
+    Lost,
+    Draw
 }

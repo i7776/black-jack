@@ -15,7 +15,7 @@ public class GameHub : Hub<IGameClient>
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         return RandomNumberGenerator.GetString(chars, 6);
     }
-    public async Task CreateRoom(string playerName)
+    public async Task CreateRoom(string playerName, int max_players)
     {
         string roomId;
         do
@@ -26,14 +26,17 @@ public class GameHub : Hub<IGameClient>
         var new_room = new GameRoom()
         {
             RoomId = roomId,
-            State = new GameState()
+            State = new GameState
+            {
+                MaxPlayers = max_players
+            }
         };
 
         _rooms[roomId] = new_room;
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
 
-        var player = new Player()
+        var player = new Player
         {
             PlayerId = Context.ConnectionId,
             Name = playerName,
@@ -51,7 +54,9 @@ public class GameHub : Hub<IGameClient>
             return;
         }
 
-        if (room.State.Players.Count == room.State.MaxPlayers && room.State.GameStatus != GameStatus.WaitingForPlayers)
+        if (room.State.Players.Any(p => p.PlayerId == Context.ConnectionId)) return;
+
+        if (room.State.Players.Count >= room.State.MaxPlayers)
         {
             await Clients.Caller.ReceiveMessage("Game is started");
             return;
@@ -59,7 +64,7 @@ public class GameHub : Hub<IGameClient>
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
 
-        var new_player = new Player()
+        var new_player = new Player
         {
             PlayerId = Context.ConnectionId,
             Name = playerName
@@ -67,21 +72,57 @@ public class GameHub : Hub<IGameClient>
 
         room.State.Players.Add(new_player);
 
+
         if (room.State.Players.Count == room.State.MaxPlayers)
         {
             room.Engine.StartNewGame(room.State);
         }
         else
         {
-            await Clients.Caller.ReceiveMessage("Waiting for other players");
-            return;
+            await Clients.Caller.ReceiveMessage($"Waiting for other players. Now we have {room.State.Players.Count}/{room.State.MaxPlayers}");
         }
         await Clients.Group(roomId).UpdateGameState(room.State);
     }
-    public async Task Hit()
+    public async Task Hit(string roomId)
     {
+        var room = _rooms[roomId];
+        var player = room.State.Players.FirstOrDefault(p => p.PlayerId == Context.ConnectionId);
+
+        if (player == null || player.Status != PlayerStatus.PlayerTurns || room.State.GameStatus != GameStatus.PlayersTurns) return; //я не понимаю как огранизовать с этими статусами
+
+        player.Cards.Add(room.Engine.DealCard());
+        player.Score = room.Engine.CalculateScore(player.Cards);
+
+        if (player.Score > 21)
+        {
+            player.Status = PlayerStatus.Bust;
+            await MoveToNextPlayer(room);
+        }
+        await Clients.Group(roomId).UpdateGameState(room.State);
     }
-    public async Task Stand()
+
+    private async Task MoveToNextPlayer(GameRoom room)
     {
+        room.State.CurrentPlayerIndex++;
+
+        if (room.State.CurrentPlayerIndex >= room.State.Players.Count)
+        {
+            room.State.GameStatus = GameStatus.DealerTurns;
+            room.Engine.DealerTurn(room.State); 
+        }
+        else
+        {
+            var nextPlayer = room.State.Players[room.State.CurrentPlayerIndex];
+        }
+    }
+    public async Task Stand(string roomId)
+    {
+        var room = _rooms[roomId];
+        if (room.State.Players[room.State.CurrentPlayerIndex].PlayerId != Context.ConnectionId) return;
+
+        room.State.Players[room.State.CurrentPlayerIndex].Status = PlayerStatus.Stand;
+
+        await MoveToNextPlayer(room);
+        await Clients.Group(roomId).UpdateGameState(room.State);
     }
 }
