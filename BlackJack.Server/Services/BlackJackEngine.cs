@@ -62,6 +62,7 @@ public class BlackJackEngine
             player.Cards.Add(DealCard());
             player.Cards.Add(DealCard());
             player.Score = CalculateScore(player.Cards);
+            player.Status = PlayerStatus.Playing;
         }
 
         gameState.GameStatus = GameStatus.PlayersTurns;
@@ -104,4 +105,65 @@ public class BlackJackEngine
             }
         }
     }
+
+    private void MoveToNextPlayer(GameState state)
+    {
+        state.CurrentPlayerIndex++;
+
+        while (state.CurrentPlayerIndex < state.Players.Count)
+        {
+            var player = state.Players[state.CurrentPlayerIndex];
+
+            if (player.Status == PlayerStatus.Playing)
+            {
+                return;
+            }
+
+            state.CurrentPlayerIndex++;
+        }
+
+        state.GameStatus = GameStatus.DealerTurns;
+
+        DealerTurn(state);
+    }
+
+    public void Hit(GameState state, string playerId)
+    {
+        if (state.GameStatus != GameStatus.PlayersTurns)
+        {
+            throw new InvalidOperationException(
+                "Сейчас нельзя брать карту.");
+        }
+
+        if (state.CurrentPlayerIndex < 0 || state.CurrentPlayerIndex >= state.Players.Count)
+        {
+            throw new InvalidOperationException(
+                "Текущий игрок не определён.");
+        }
+
+        var player = state.Players[state.CurrentPlayerIndex];
+
+        if (player.PlayerId != playerId)
+        {
+            throw new InvalidOperationException(
+                "Сейчас ход другого игрока.");
+        }
+
+        if (player.Status != PlayerStatus.Playing)
+        {
+            throw new InvalidOperationException(
+                "Этот игрок уже завершил ход.");
+        }
+
+        player.Cards.Add(DealCard());
+        player.Score = CalculateScore(player.Cards);
+
+        if (player.Score > 21)
+        {
+            player.Status = PlayerStatus.Bust;
+            MoveToNextPlayer(state);
+        }
+    }
+
+   
 }

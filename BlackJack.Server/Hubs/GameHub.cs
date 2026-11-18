@@ -8,121 +8,119 @@ namespace BlackJack.Server.Hubs;
 
 public class GameHub : Hub<IGameClient>
 {
-    private static readonly ConcurrentDictionary<string, GameRoom> _rooms = new();
 
-    public static string GenerateRoomCode()
+    private readonly RoomService _rooms;
+
+    public GameHub(RoomService rooms)
     {
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        return RandomNumberGenerator.GetString(chars, 6);
+        _rooms = rooms;
     }
-    public async Task CreateRoom(string playerName, int max_players)
+
+    public async Task CreateRoom(string playerName, int maxPlayers)
     {
-        string roomId;
-        do
+        RoomUpdate update;
+
+        try
         {
-            roomId = GenerateRoomCode();
-        } while (_rooms.ContainsKey(roomId));
-
-        var new_room = new GameRoom()
+            update = _rooms.CreateRoom( Context.ConnectionId, playerName, maxPlayers);
+        }
+        catch (ArgumentException exception)
         {
-            RoomId = roomId,
-            State = new GameState
-            {
-                MaxPlayers = max_players
-            }
-        };
+            await Clients.Caller.ShowWarning(exception.Message);
+            return;
+        }
 
-        _rooms[roomId] = new_room;
+        await Groups.AddToGroupAsync(Context.ConnectionId, update.RoomId);
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
+        await Clients.Caller.ReceiveMessage(
+            $"Комната создана. Код: {update.RoomId}");
 
-        var player = new Player
-        {
-            PlayerId = Context.ConnectionId,
-            Name = playerName,
-        };
-        new_room.State.Players.Add(player);
-
-        await Clients.Caller.ReceiveMessage($"Room with this code {roomId} is created");
+        await Clients.Group(update.RoomId)
+            .UpdateGameState(update.State);
     }
+
     public async Task JoinRoom(string roomId, string playerName)
     {
-        roomId = roomId.Trim().ToUpper();
-        if (!_rooms.TryGetValue(roomId, out var room))
+        RoomUpdate update;
+
+        try
         {
-            await Clients.Caller.ReceiveMessage($"Room with this code {roomId} is not found...");
+            update = _rooms.JoinRoom(
+                roomId,
+                Context.ConnectionId,
+                playerName);
+        }
+        catch (ArgumentException exception)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
+            return;
+        }
+        catch (InvalidOperationException exception)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
             return;
         }
 
-        if (room.State.Players.Any(p => p.PlayerId == Context.ConnectionId)) return;
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId,
+            update.RoomId);
 
-        if (room.State.Players.Count >= room.State.MaxPlayers)
+        if (update.State.GameStatus ==
+            BlackJack.Shared.GameStatus.WaitingForPlayers)
         {
-            await Clients.Caller.ReceiveMessage("Game is started");
-            return;
+            await Clients.Caller.ReceiveMessage(
+                $"Ожидаем игроков: " +
+                $"{update.State.Players.Count}/" +
+                $"{update.State.MaxPlayers}");
         }
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-
-        var new_player = new Player
-        {
-            PlayerId = Context.ConnectionId,
-            Name = playerName
-        };
-
-        room.State.Players.Add(new_player);
-
-
-        if (room.State.Players.Count == room.State.MaxPlayers)
-        {
-            room.Engine.StartNewGame(room.State);
-        }
-        else
-        {
-            await Clients.Caller.ReceiveMessage($"Waiting for other players. Now we have {room.State.Players.Count}/{room.State.MaxPlayers}");
-        }
-        await Clients.Group(roomId).UpdateGameState(room.State);
+        await Clients.Group(update.RoomId)
+            .UpdateGameState(update.State);
     }
+
     public async Task Hit(string roomId)
     {
-        var room = _rooms[roomId];
-        var player = room.State.Players.FirstOrDefault(p => p.PlayerId == Context.ConnectionId);
+        RoomUpdate update;
 
-        if (player == null || player.Status != PlayerStatus.PlayerTurns || room.State.GameStatus != GameStatus.PlayersTurns) return; //я не понимаю как огранизовать с этими статусами
-
-        player.Cards.Add(room.Engine.DealCard());
-        player.Score = room.Engine.CalculateScore(player.Cards);
-
-        if (player.Score > 21)
+        try
         {
-            player.Status = PlayerStatus.Bust;
-            await MoveToNextPlayer(room);
+            update = _rooms.Hit(roomId, Context.ConnectionId);
         }
-        await Clients.Group(roomId).UpdateGameState(room.State);
+        catch (InvalidOperationException exception)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
+            return;
+        }
+        catch (ArgumentException exception)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
+            return;
+        }
+
+        await Clients.Group(update.RoomId)
+            .UpdateGameState(update.State);
     }
 
-    private async Task MoveToNextPlayer(GameRoom room)
-    {
-        room.State.CurrentPlayerIndex++;
-
-        if (room.State.CurrentPlayerIndex >= room.State.Players.Count)
-        {
-            room.State.GameStatus = GameStatus.DealerTurns;
-            room.Engine.DealerTurn(room.State); 
-        }
-        else
-        {
-            var nextPlayer = room.State.Players[room.State.CurrentPlayerIndex];
-        }
-    }
     public async Task Stand(string roomId)
     {
-        var room = _rooms[roomId];
-        if (room.State.Players[room.State.CurrentPlayerIndex].PlayerId != Context.ConnectionId) return;
+        RoomUpdate update;
 
-        room.State.Players[room.State.CurrentPlayerIndex].Status = PlayerStatus.Stand;
+        try
+        {
+            update = _rooms.Stand(roomId, Context.ConnectionId);
+        }
+        catch (InvalidOperationException exception)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
+            return;
+        }
+        catch (ArgumentException exception)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
+            return;
+        }
 
-        await MoveToNextPlayer(room);
-        await Clients.Group(roomId).UpdateGameState(room.State);
+        await Clients.Group(update.RoomId)
+            .UpdateGameState(update.State);
     }
 }

@@ -6,5 +6,6 @@ namespace BlackJack.Server.Hubs
     {
         Task UpdateGameState(GameState state);
         Task ReceiveMessage(string message);
+        Task ShowWarning(string message);
     }
 }
