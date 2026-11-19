@@ -7,6 +7,7 @@ public class GameClientService : IAsyncDisposable
 {
     private readonly HubConnection _connection; // подключение  к серверу
 
+    public string? RoomId { get; private set; }
     public GameState? State { get; private set; }
     public string? Message { get; private set; }
     public string? Warning { get; private set; }
@@ -41,7 +42,9 @@ public class GameClientService : IAsyncDisposable
         _connection.Closed += exception =>
         {
             State = null;
+            RoomId = null;
             Warning = "Соединение с сервером закрыто.";
+
             Changed?.Invoke();
 
             return Task.CompletedTask;
@@ -62,18 +65,29 @@ public class GameClientService : IAsyncDisposable
 
         Changed?.Invoke();
     }
-
     public async Task CreateRoomAsync(string playerName, int maxPlayers)
     {
         if (!IsConnected)
         {
-            throw new InvalidOperationException("Сначала подключись к серверу.");
+            throw new InvalidOperationException(
+                "Сначала подключись к серверу.");
         }
 
         Warning = null;
         Message = null;
 
-        await _connection.InvokeAsync("CreateRoom", playerName, maxPlayers);
+        // получаем результат серверного метода
+        var createdRoomId = await _connection.InvokeAsync<string?>(
+            "CreateRoom",
+            playerName,
+            maxPlayers);
+
+        if (!string.IsNullOrWhiteSpace(createdRoomId))
+        {
+            RoomId = createdRoomId;
+        }
+
+        Changed?.Invoke();
     }
 
     public async Task JoinRoomAsync(string roomId, string playerName)
@@ -84,15 +98,78 @@ public class GameClientService : IAsyncDisposable
                 "Сначала подключись к серверу.");
         }
 
-        // очищаем сообщения предыдущей операции
         Warning = null;
         Message = null;
 
-        // вызываем вход в комнату на сервере
-        await _connection.InvokeAsync(
+        // сохраняем код только после успешного входа
+        var joinedRoomId = await _connection.InvokeAsync<string?>(
             "JoinRoom",
             roomId,
             playerName);
+
+        if (!string.IsNullOrWhiteSpace(joinedRoomId))
+        {
+            RoomId = joinedRoomId;
+        }
+
+        Changed?.Invoke();
+    }
+
+    public bool IsMyTurn
+    {
+        get
+        {
+            var state = State;
+
+            if (!IsConnected ||
+                string.IsNullOrWhiteSpace(RoomId) ||
+                state is null ||
+                state.GameStatus != GameStatus.PlayersTurns)
+            {
+                return false;
+            }
+
+            var index = state.CurrentPlayerIndex;
+
+            if (index < 0 || index >= state.Players.Count)
+            {
+                return false;
+            }
+
+            var player = state.Players[index];
+
+            // сервер использует идентификатор соединения как playerId
+            return player.PlayerId == _connection.ConnectionId &&
+                   player.Status == PlayerStatus.Playing;
+        }
+    }
+
+    public async Task HitAsync()
+    {
+        if (!IsConnected || string.IsNullOrWhiteSpace(RoomId))
+        {
+            throw new InvalidOperationException(
+                "Нет подключения к комнате.");
+        }
+
+        Warning = null;
+
+        // просим сервер выдать карту
+        await _connection.InvokeAsync("Hit", RoomId);
+    }
+
+    public async Task StandAsync()
+    {
+        if (!IsConnected || string.IsNullOrWhiteSpace(RoomId))
+        {
+            throw new InvalidOperationException(
+                "Нет подключения к комнате.");
+        }
+
+        Warning = null;
+
+        // просим сервер завершить наш ход
+        await _connection.InvokeAsync("Stand", RoomId);
     }
 
     public async ValueTask DisposeAsync()
