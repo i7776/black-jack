@@ -1,0 +1,164 @@
+﻿@using BlackJack.Shared
+
+<section class="casino">
+    <header class="casino-header">
+        <div class="brand">
+            <span aria-hidden="true">♠</span>
+            <div>
+                <strong>BOSS CLUB</strong>
+                <small>BLACK JACK</small>
+            </div>
+        </div>
+
+        <span class="phase" role="status">
+            @PhaseText
+        </span>
+    </header>
+
+    <div class="game-table">
+        <section class="dealer">
+            <div class="hand-heading">
+                <span>ДИЛЕР</span>
+
+                @if (State.DealerCards.Count > 0)
+                {
+                    <span class="score">@State.DealerScore очк.</span>
+                }
+            </div>
+
+            <div class="cards">
+                @foreach (var card in State.DealerCards)
+                {
+                    <img class="playing-card"
+                         src="@CardImage(card)"
+                         alt="@CardDescription(card)"
+                         draggable="false" />
+                }
+            </div>
+
+            @if (State.DealerCards.Count == 0)
+            {
+                <p class="empty-hand">Ожидание раздачи</p>
+            }
+        </section>
+
+        <div class="table-mark" aria-hidden="true">
+            <span>♣ ♦ ♠ ♥</span>
+            <strong>Все карты в лапах Босса</strong>
+            <small>дилер добирает до 17</small>
+        </div>
+
+        <div class="players">
+            @for (int i = 0; i < State.Players.Count; i++)
+            {
+                var player = State.Players[i];
+
+                var current =
+                    State.GameStatus == GameStatus.PlayersTurns &&
+                    State.CurrentPlayerIndex == i;
+
+                <section @key="player.PlayerId"
+                         class="player-seat @(current ? "current" : "")">
+
+                    <div class="player-heading">
+                        <div class="player-name">
+                            <span class="avatar" aria-hidden="true">♠</span>
+                            <strong>@player.Name</strong>
+                        </div>
+
+                        @if (player.Cards.Count > 0)
+                        {
+                            <span class="score">@player.Score очк.</span>
+                        }
+                    </div>
+
+                    <p class="player-status">
+                        @(current ? "Сейчас ходит" : StatusText(player))
+                    </p>
+
+                    <div class="cards">
+                        @foreach (var card in player.Cards)
+                        {
+                            <img class="playing-card"
+                                 src="@CardImage(card)"
+                                 alt="@CardDescription(card)"
+                                 draggable="false" />
+                        }
+                    </div>
+
+                    @if (player.Cards.Count == 0)
+                    {
+                        <p class="empty-hand">Карты скоро появятся</p>
+                    }
+                </section>
+            }
+        </div>
+    </div>
+
+    <footer class="casino-footer">
+        <span>Колода Босса · 36 карт</span>
+        <span>@State.Players.Count / @State.MaxPlayers игроков</span>
+    </footer>
+</section>
+
+@code {
+    // состояние приходит со страницы, сам компонент его не меняет
+    [Parameter, EditorRequired]
+    public GameState State { get; set; } = new();
+
+    private string PhaseText => State.GameStatus switch
+    {
+        GameStatus.WaitingForPlayers => "Ожидаем игроков",
+        GameStatus.PlayersTurns => "Ходы игроков",
+        GameStatus.DealerTurns => "Ход дилера",
+        GameStatus.Finished => "Партия завершена",
+        _ => "Игра"
+    };
+
+    private static string RankLabel(Rank rank) => rank switch
+    {
+        Rank.Jack => "J",
+        Rank.Queen => "Q",
+        Rank.King => "K",
+        Rank.Ace => "A",
+        _ => ((int)rank).ToString()
+    };
+
+    private static string SuitName(Suit suit) => suit switch
+    {
+        Suit.Hearts => "червей",
+        Suit.Diamonds => "бубен",
+        Suit.Clubs => "треф",
+        Suit.Spades => "пик",
+        _ => ""
+    };
+
+    private static string CardImage(Card card)
+    {
+        // собираем имя уже существующей картинки
+        var rank = RankLabel(card.Rank);
+        var suit = card.Suit.ToString().ToLowerInvariant();
+
+        return $"images/cards/boss/{rank}_{suit}.png";
+    }
+
+    private static string CardDescription(Card card)
+    {
+        return $"{RankLabel(card.Rank)} {SuitName(card.Suit)}";
+    }
+
+    private static string StatusText(Player player) =>
+        player.Status switch
+        {
+            PlayerStatus.Waiting => "Ожидает начала",
+            PlayerStatus.Playing => "Ожидает своего хода",
+            PlayerStatus.Stand => "Завершил ход",
+            PlayerStatus.Bust => "Перебор",
+            PlayerStatus.Won => "Победа!",
+            PlayerStatus.Lost when player.Score > 21 => "Перебор",
+            PlayerStatus.Lost => "Поражение",
+            PlayerStatus.Draw => "Ничья",
+            PlayerStatus.BlackJack => "Блэкджек!",
+            _ => ""
+        };
+}

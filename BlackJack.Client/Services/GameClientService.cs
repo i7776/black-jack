@@ -76,6 +76,25 @@ public class GameClientService : IAsyncDisposable
         await _connection.InvokeAsync("CreateRoom", playerName, maxPlayers);
     }
 
+    public async Task JoinRoomAsync(string roomId, string playerName)
+    {
+        if (!IsConnected)
+        {
+            throw new InvalidOperationException(
+                "Сначала подключись к серверу.");
+        }
+
+        // очищаем сообщения предыдущей операции
+        Warning = null;
+        Message = null;
+
+        // вызываем вход в комнату на сервере
+        await _connection.InvokeAsync(
+            "JoinRoom",
+            roomId,
+            playerName);
+    }
+
     public async ValueTask DisposeAsync()
     {
         await _connection.DisposeAsync(); // освобождаем соединение
