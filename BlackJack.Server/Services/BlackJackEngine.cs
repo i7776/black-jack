@@ -54,6 +54,8 @@ public class BlackJackEngine
         gameState.DealerCards.Add(DealCard());
         gameState.DealerScore = CalculateScore(gameState.DealerCards);
 
+        gameState.CurrentPlayerIndex = 0;
+
         foreach (var player in gameState.Players)
         {
             player.Cards.Clear();
@@ -70,13 +72,20 @@ public class BlackJackEngine
 
     public void DealerTurn(GameState state)
     {
-        while (CalculateScore(state.DealerCards) < 17)
+        state.GameStatus = GameStatus.DealerTurns;
+
+        state.DealerScore = CalculateScore(state.DealerCards);
+
+        while (state.DealerScore < 17)
         {
             state.DealerCards.Add(DealCard());
+
+            state.DealerScore = CalculateScore(state.DealerCards);
         }
 
-        state.GameStatus = GameStatus.Finished;
+        DetermineWinners(state);
 
+        state.GameStatus = GameStatus.Finished;
     }
 
     public void DetermineWinners(GameState state)
@@ -85,15 +94,19 @@ public class BlackJackEngine
 
         foreach (var player in state.Players)
         {
-            if (player.Status == PlayerStatus.Bust)
-            {
-                player.Status = PlayerStatus.Lost; 
-                continue;
-            }
+            player.Score = CalculateScore(player.Cards);
 
-            if (dealerScore > 21 || player.Score > dealerScore)
+            if (player.Score > 21)
             {
-                player.Status = PlayerStatus.BlackJack;
+                player.Status = PlayerStatus.Lost;
+            }
+            else if (dealerScore > 21)
+            {
+                player.Status = PlayerStatus.Won;
+            }
+            else if (player.Score > dealerScore)
+            {
+                player.Status = PlayerStatus.Won;
             }
             else if (player.Score < dealerScore)
             {
@@ -165,5 +178,37 @@ public class BlackJackEngine
         }
     }
 
-   
+    public void Stand(GameState state, string playerId)
+    {
+        if (state.GameStatus != GameStatus.PlayersTurns)
+        {
+            throw new InvalidOperationException(
+                "Сейчас нельзя завершить ход.");
+        }
+
+        if (state.CurrentPlayerIndex < 0 ||
+            state.CurrentPlayerIndex >= state.Players.Count)
+        {
+            throw new InvalidOperationException(
+                "Текущий игрок не определён.");
+        }
+
+        var player = state.Players[state.CurrentPlayerIndex];
+
+        if (player.PlayerId != playerId)
+        {
+            throw new InvalidOperationException(
+                "Сейчас ход другого игрока.");
+        }
+
+        if (player.Status != PlayerStatus.Playing)
+        {
+            throw new InvalidOperationException(
+                "Этот игрок уже завершил ход.");
+        }
+
+        player.Status = PlayerStatus.Stand;
+
+        MoveToNextPlayer(state);
+    }
 }

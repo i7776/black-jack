@@ -22,5 +22,6 @@ public enum PlayerStatus //пока не понимаю, какие нужны
     Stand,
     BlackJack,
     Lost,
-    Draw
+    Draw,
+    Won
 }
