@@ -16,18 +16,18 @@ public class GameHub : Hub<IGameClient>
         _rooms = rooms;
     }
 
-    public async Task CreateRoom(string playerName, int maxPlayers)
+    public async Task<string?> CreateRoom(string playerName, int maxPlayers)
     {
         RoomUpdate update;
 
         try
         {
-            update = _rooms.CreateRoom( Context.ConnectionId, playerName, maxPlayers);
+            update = _rooms.CreateRoom(Context.ConnectionId, playerName, maxPlayers);
         }
         catch (ArgumentException exception)
         {
             await Clients.Caller.ShowWarning(exception.Message);
-            return;
+            return null;
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, update.RoomId);
@@ -37,9 +37,11 @@ public class GameHub : Hub<IGameClient>
 
         await Clients.Group(update.RoomId)
             .UpdateGameState(update.State);
+
+        return update.RoomId;
     }
 
-    public async Task JoinRoom(string roomId, string playerName)
+    public async Task<string?> JoinRoom(string roomId, string playerName)
     {
         RoomUpdate update;
 
@@ -53,12 +55,12 @@ public class GameHub : Hub<IGameClient>
         catch (ArgumentException exception)
         {
             await Clients.Caller.ShowWarning(exception.Message);
-            return;
+            return null;
         }
         catch (InvalidOperationException exception)
         {
             await Clients.Caller.ShowWarning(exception.Message);
-            return;
+            return null;
         }
 
         await Groups.AddToGroupAsync(
@@ -76,6 +78,8 @@ public class GameHub : Hub<IGameClient>
 
         await Clients.Group(update.RoomId)
             .UpdateGameState(update.State);
+
+        return update.RoomId;
     }
 
     public async Task Hit(string roomId)

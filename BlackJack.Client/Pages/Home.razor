@@ -86,7 +86,25 @@
 @if (GameClient.State is { } state)
 {
     <div class="mt-4">
+        <p>Комната <strong>@GameClient.RoomId</strong></p>
+
         <GameTable State="state" />
+
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <button type="button"
+                    class="btn btn-success"
+                    disabled="@(isBusy || !GameClient.IsMyTurn)"
+                    @onclick="() => RunAsync(GameClient.HitAsync)">
+                Взять карту
+            </button>
+
+            <button type="button"
+                    class="btn btn-warning"
+                    disabled="@(isBusy || !GameClient.IsMyTurn)"
+                    @onclick="() => RunAsync(GameClient.StandAsync)">
+                Хватит
+            </button>
+        </div>
     </div>
 }
 
