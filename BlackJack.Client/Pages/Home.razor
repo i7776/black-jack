@@ -2,6 +2,7 @@
 @using BlackJack.Client.Components
 @using BlackJack.Client.Services
 @inject GameClientService GameClient
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>Boss Club · Blackjack</PageTitle>
@@ -9,7 +10,6 @@
 <div class="lobby-wrapper">
     @if (GameClient.State is null)
     {
-        <!-- ЭКРАН ВХОДА И СОЗДАНИЯ КОМНАТЫ -->
         <main class="login-card">
             <div class="login-header">
                 <span class="gold-spade">♠</span>
@@ -18,7 +18,6 @@
             </div>
 
             <div class="login-body">
-                <!-- Статус соединения -->
                 <div class="conn-bar">
                     <span class="status-indicator @(GameClient.IsConnected ? "online" : "offline")"></span>
                     <span>@(GameClient.IsConnected ? "Подключено к серверу" : "Оффлайн")</span>
@@ -35,7 +34,6 @@
                     <input class="custom-input" placeholder="Введите имя..." @bind="playerName" />
                 </div>
 
-                <!-- Блок создания комнаты на 2-5 человек -->
                 <section class="option-panel">
                     <h4>Создать стол</h4>
                     <div class="field-group-inline">
@@ -53,7 +51,6 @@
 
                 <div class="or-separator"><span>ИЛИ</span></div>
 
-                <!-- Блок входа по коду -->
                 <section class="option-panel">
                     <h4>Присоединиться к столу</h4>
                     <input class="custom-input uppercase"
@@ -69,52 +66,32 @@
     }
     else
     {
-        <!-- ЭКРАН ИГРЫ -->
         <div class="table-view">
-            <!-- Верхняя плашка управления -->
             <div class="top-nav-bar">
                 <div class="room-pill">
                     <span class="room-label">СТОЛ:</span>
                     <strong class="room-code">@GameClient.RoomId</strong>
+                    <button type="button"
+                            class="btn-copy @(isCopied ? "copied" : "")"
+                            @onclick="CopyRoomCode"
+                            title="Скопировать код стола">
+                        @(isCopied ? "Скопировано!" : "Копировать")
+                    </button>
                 </div>
 
                 <button class="btn-leave" disabled="@isBusy" @onclick="Leave">
-                    <i class="bi bi-door-open me-1"></i> Выйти из-за стола
+                    Выйти из-за стола
                 </button>
             </div>
 
-            <!-- Сукно стола с картами и игроками -->
-            <GameTable State="GameClient.State" />
-
-            <!-- ПЛАВАЮЩАЯ ПАНЕЛЬ ДЕЙСТВИЙ (Активна строго в свой ход!) -->
-            <nav class="action-dock @(GameClient.IsMyTurn ? "dock-active" : "dock-disabled")">
-                <div class="dock-content">
-                    <button type="button"
-                            class="action-btn btn-hit"
-                            disabled="@(isBusy || !GameClient.IsMyTurn)"
-                            @onclick="() => RunAsync(GameClient.HitAsync)">
-                        <span class="btn-icon">➕</span> Взять карту
-                    </button>
-
-                    <button type="button"
-                            class="action-btn btn-stand"
-                            disabled="@(isBusy || !GameClient.IsMyTurn)"
-                            @onclick="() => RunAsync(GameClient.StandAsync)">
-                        <span class="btn-icon">✋</span> Хватит
-                    </button>
-
-                    <button type="button"
-                            class="action-btn btn-surrender"
-                            disabled="@(isBusy || !GameClient.IsMyTurn)"
-                            @onclick="() => RunAsync(GameClient.SurrenderAsync)">
-                        <span class="btn-icon">🏳️</span> Сдаться
-                    </button>
-                </div>
-            </nav>
+            <GameTable State="GameClient.State"
+                       IsBusy="isBusy"
+                       OnHit="() => RunAsync(GameClient.HitAsync)"
+                       OnStand="() => RunAsync(GameClient.StandAsync)"
+                       OnSurrender="() => RunAsync(GameClient.SurrenderAsync)" />
         </div>
     }
 
-    <!-- Всплывающие уведомления -->
     @if (!string.IsNullOrWhiteSpace(error))
     {
         <div class="toast-alert alert-error">@error</div>
@@ -141,6 +118,28 @@
         GameClient.IsConnected &&
         GameClient.State is null &&
         !string.IsNullOrWhiteSpace(playerName);
+
+    private bool isCopied = false;
+
+    private async Task CopyRoomCode()
+    {
+        if (string.IsNullOrWhiteSpace(GameClient.RoomId)) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", GameClient.RoomId);
+
+            isCopied = true;
+            StateHasChanged();
+
+            await Task.Delay(2000);
+            isCopied = false;
+        }
+        catch
+        {
+            error = "Браузер заблокировал буфер обмена. Скопируйте код вручную.";
+        }
+    }
 
     protected override void OnInitialized()
     {

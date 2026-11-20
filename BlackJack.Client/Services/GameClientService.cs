@@ -14,6 +14,16 @@ public class GameClientService : IAsyncDisposable
     public bool IsConnected => _connection.State == HubConnectionState.Connected; // установлено ли соединение
     public event Action? Changed; // для уведомления интерфейса об изменениях
 
+
+    public string? ConnectionId => _connection.ConnectionId;
+    public bool IsHost => State?.HostPlayerId == ConnectionId;
+    public bool CanStartGame =>
+        IsHost &&
+        State != null &&
+        State.Players.Count >= 2 &&
+        State.GameStatus == GameStatus.WaitingForPlayers;
+
+
     public GameClientService()
     {
         // создаём подключение но не запускаем его
@@ -51,6 +61,11 @@ public class GameClientService : IAsyncDisposable
         };
     }
 
+    public async Task StartGameAsync()
+    {
+        if (!IsConnected || string.IsNullOrWhiteSpace(RoomId)) return;
+        await _connection.InvokeAsync("StartGame", RoomId);
+    }
     public async Task ConnectAsync()
     {
         // подключение из отключённого состояния
@@ -123,6 +138,13 @@ public class GameClientService : IAsyncDisposable
         RoomId = null;
         State = null;
         Changed?.Invoke();
+    }
+
+    public async Task PrepareNextRoundAsync()
+    {
+        if (!IsConnected || string.IsNullOrWhiteSpace(RoomId)) return;
+        Warning = null;
+        await _connection.InvokeAsync("PrepareNextRound", RoomId);
     }
 
     public async Task SurrenderAsync()

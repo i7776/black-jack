@@ -11,6 +11,7 @@ public class Player
     public List<Card> Cards { get; set; } = new();
     public int Score { get; set; } = 0;
     public PlayerStatus Status { get; set; } = PlayerStatus.Waiting;
+    public bool IsHost { get; set; } = false;
 }
 
 public enum PlayerStatus //пока не понимаю, какие нужны

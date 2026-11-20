@@ -1,10 +1,10 @@
 /* CSS for Home component */
 .lobby-wrapper {
-    min-height: 90vh;
+    min-height: calc(100vh - 20px);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 10px;
+    justify-content: flex-start; 
+    padding: 6px;
 }
 
 /* КАРТОЧКА ВХОДА (Лобби) */
@@ -71,15 +71,15 @@
     border-radius: 50%;
 }
 
-    .status-indicator.online {
-        background: #4ade80;
-        box-shadow: 0 0 8px #4ade80;
-    }
+.status-indicator.online {
+    background: #4ade80;
+    box-shadow: 0 0 8px #4ade80;
+}
 
-    .status-indicator.offline {
-        background: #f87171;
-        box-shadow: 0 0 8px #f87171;
-    }
+.status-indicator.offline {
+    background: #f87171;
+    box-shadow: 0 0 8px #f87171;
+}
 
 .action-link {
     margin-left: auto;
@@ -112,17 +112,17 @@
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-    .custom-input:focus {
-        border-color: #d8b974;
-        box-shadow: 0 0 12px rgba(216, 185, 116, 0.3);
-    }
+.custom-input:focus {
+    border-color: #d8b974;
+    box-shadow: 0 0 12px rgba(216, 185, 116, 0.3);
+}
 
-    .custom-input.uppercase {
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        font-weight: 700;
-        text-align: center;
-    }
+.custom-input.uppercase {
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-weight: 700;
+    text-align: center;
+}
 
 .option-panel {
     background: rgba(255, 255, 255, 0.02);
@@ -131,12 +131,12 @@
     padding: 16px;
 }
 
-    .option-panel h4 {
-        font-size: 14px;
-        margin: 0 0 12px;
-        color: #e5c378;
-        letter-spacing: 1px;
-    }
+.option-panel h4 {
+    font-size: 14px;
+    margin: 0 0 12px;
+    color: #e5c378;
+    letter-spacing: 1px;
+}
 
 .field-group-inline {
     display: flex;
@@ -156,16 +156,16 @@
     padding: 2px 6px;
 }
 
-    .stepper button {
-        background: transparent;
-        border: none;
-        color: #d8b974;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        width: 24px;
-        height: 24px;
-    }
+.stepper button {
+    background: transparent;
+    border: none;
+    color: #d8b974;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+}
 
 .stepper-val {
     font-weight: 700;
@@ -191,25 +191,25 @@
     color: #1a1008;
 }
 
-    .btn-gold:hover:not(:disabled) {
-        box-shadow: 0 4px 18px rgba(216, 185, 116, 0.4);
-        transform: translateY(-1px);
-    }
+.btn-gold:hover:not(:disabled) {
+    box-shadow: 0 4px 18px rgba(216, 185, 116, 0.4);
+    transform: translateY(-1px);
+}
 
 .btn-green {
     background: linear-gradient(135deg, #278d5e 0%, #1a6442 100%);
     color: #faecd0;
 }
 
-    .btn-green:hover:not(:disabled) {
-        box-shadow: 0 4px 18px rgba(39, 141, 94, 0.4);
-        transform: translateY(-1px);
-    }
+.btn-green:hover:not(:disabled) {
+    box-shadow: 0 4px 18px rgba(39, 141, 94, 0.4);
+    transform: translateY(-1px);
+}
 
-    .btn-gold:disabled, .btn-green:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
+.btn-gold:disabled, .btn-green:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
 
 .or-separator {
     text-align: center;
@@ -219,22 +219,22 @@
     letter-spacing: 2px;
 }
 
-    .or-separator::before, .or-separator::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        width: 42%;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.08);
-    }
+.or-separator::before, .or-separator::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 42%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
 
-    .or-separator::before {
-        left: 0;
-    }
+.or-separator::before {
+    left: 0;
+}
 
-    .or-separator::after {
-        right: 0;
-    }
+.or-separator::after {
+    right: 0;
+}
 
 /* ЭКРАН ИГРЫ */
 .table-view {
@@ -287,10 +287,10 @@
     transition: all 0.2s;
 }
 
-    .btn-leave:hover {
-        background: #f87171;
-        color: white;
-    }
+.btn-leave:hover {
+    background: #f87171;
+    color: white;
+}
 
 /* ПЛАВАЮЩАЯ ПАНЕЛЬ ХОДА (Dock) */
 .action-dock {
@@ -302,14 +302,14 @@
     transition: all 0.3s ease;
 }
 
-    .action-dock.dock-active {
-        border-color: #ffd700;
-        box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
-    }
+.action-dock.dock-active {
+    border-color: #ffd700;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+}
 
-    .action-dock.dock-disabled {
-        opacity: 0.6;
-    }
+.action-dock.dock-disabled {
+    opacity: 0.6;
+}
 
 .dock-content {
     display: flex;
@@ -332,12 +332,12 @@
     transition: all 0.2s ease;
 }
 
-    .action-btn:disabled {
-        opacity: 0.35;
-        cursor: not-allowed;
-        transform: none !important;
-        box-shadow: none !important;
-    }
+.action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
 
 .btn-hit {
     background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
@@ -345,10 +345,10 @@
     box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
 }
 
-    .btn-hit:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
-    }
+.btn-hit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+}
 
 .btn-stand {
     background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
@@ -356,10 +356,10 @@
     box-shadow: 0 4px 14px rgba(234, 179, 8, 0.35);
 }
 
-    .btn-stand:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(234, 179, 8, 0.5);
-    }
+.btn-stand:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(234, 179, 8, 0.5);
+}
 
 .btn-surrender {
     background: transparent;
@@ -367,10 +367,10 @@
     color: #b0c7b6;
 }
 
-    .btn-surrender:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.08);
-        color: white;
-    }
+.btn-surrender:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
 
 /* Всплывающие уведомления */
 .toast-alert {
@@ -397,4 +397,29 @@
     background: rgba(59, 130, 246, 0.2);
     border: 1px solid #3b82f6;
     color: #93c5fd;
+}
+
+.btn-copy {
+    background: rgba(216, 185, 116, 0.12);
+    border: 1px solid rgba(216, 185, 116, 0.4);
+    color: #e5c378;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 6px;
+}
+
+.btn-copy:hover {
+    background: rgba(216, 185, 116, 0.25);
+    border-color: #ffd700;
+    color: #ffd700;
+}
+
+.btn-copy.copied {
+    background: rgba(74, 222, 128, 0.2);
+    border-color: #4ade80;
+    color: #4ade80;
 }

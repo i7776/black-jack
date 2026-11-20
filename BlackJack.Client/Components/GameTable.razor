@@ -1,199 +1,36 @@
-﻿@* @using BlackJack.Shared
-
-<section class="casino">
-    <header class="casino-header">
-        <div class="brand">
-            <span aria-hidden="true">♠</span>
-            <div>
-                <strong>BOSS CLUB</strong>
-                <small>BLACK JACK</small>
-            </div>
-        </div>
-
-        <span class="phase" role="status">
-            @PhaseText
-        </span>
-    </header>
-
-    <div class="game-table">
-        <section class="dealer">
-            <div class="hand-heading">
-                <span>ДИЛЕР</span>
-
-                @if (State.DealerCards.Count > 0)
-                {
-                    <span class="score">@State.DealerScore очк.</span>
-                }
-            </div>
-
-            <div class="cards">
-                @foreach (var card in State.DealerCards)
-                {
-                    <img class="playing-card"
-                         src="@CardImage(card)"
-                         alt="@CardDescription(card)"
-                         draggable="false" />
-                }
-            </div>
-
-            @if (State.DealerCards.Count == 0)
-            {
-                <p class="empty-hand">Ожидание раздачи</p>
-            }
-        </section>
-
-        <div class="table-mark" aria-hidden="true">
-            <span>♣ ♦ ♠ ♥</span>
-            <strong>Все карты в лапах Босса</strong>
-        </div>
-
-        <div class="players">
-            @for (int i = 0; i < State.Players.Count; i++)
-            {
-                var player = State.Players[i];
-
-                var current =
-                    State.GameStatus == GameStatus.PlayersTurns &&
-                    State.CurrentPlayerIndex == i;
-
-                <section @key="player.PlayerId"
-                         class="player-seat @(current ? "current" : "")">
-
-                    <div class="player-heading">
-                        <div class="player-name">
-                            <span class="avatar" aria-hidden="true">♠</span>
-                            <strong>@player.Name</strong>
-                        </div>
-
-                        @if (player.Cards.Count > 0)
-                        {
-                            <span class="score">@player.Score очк.</span>
-                        }
-                    </div>
-
-                    <p class="player-status">
-                        @(current ? "Сейчас ходит" : StatusText(player))
-                    </p>
-
-                    <div class="cards">
-                        @foreach (var card in player.Cards)
-                        {
-                            <img class="playing-card"
-                                 src="@CardImage(card)"
-                                 alt="@CardDescription(card)"
-                                 draggable="false" />
-                        }
-                    </div>
-
-                    @if (player.Cards.Count == 0)
-                    {
-                        <p class="empty-hand">Карты скоро появятся</p>
-                    }
-                </section>
-            }
-        </div>
-    </div>
-
-    <footer class="casino-footer">
-        <span>Колода Босса · 36 карт</span>
-        <span>@State.Players.Count / @State.MaxPlayers игроков</span>
-    </footer>
-</section>
-
-@code {
-    // состояние приходит со страницы, сам компонент его не меняет
-    [Parameter, EditorRequired]
-    public GameState State { get; set; } = new();
-
-    private string PhaseText => State.GameStatus switch
-    {
-        GameStatus.WaitingForPlayers => "Ожидаем игроков",
-        GameStatus.PlayersTurns => "Ходы игроков",
-        GameStatus.DealerTurns => "Ход дилера",
-        GameStatus.Finished => "Партия завершена",
-        _ => "Игра"
-    };
-
-    private static string RankLabel(Rank rank) => rank switch
-    {
-        Rank.Jack => "J",
-        Rank.Queen => "Q",
-        Rank.King => "K",
-        Rank.Ace => "A",
-        _ => ((int)rank).ToString()
-    };
-
-    private static string SuitName(Suit suit) => suit switch
-    {
-        Suit.Hearts => "червей",
-        Suit.Diamonds => "бубен",
-        Suit.Clubs => "треф",
-        Suit.Spades => "пик",
-        _ => ""
-    };
-
-    private static string CardImage(Card card)
-    {
-        if ((int)card.Rank < 6)
-        {
-            return "images/cards/boss/back.png";
-        }
-
-        var rank = RankLabel(card.Rank);
-        var suit = card.Suit.ToString().ToLowerInvariant();
-
-        return $"images/cards/boss/{rank}_{suit}.png";
-    }
-
-    private static string CardDescription(Card card)
-    {
-        if ((int)card.Rank < 6)
-        {
-            return "Закрытая карта";
-        }
-        return $"{RankLabel(card.Rank)} {SuitName(card.Suit)}";
-    }
-
-    private static string StatusText(Player player) =>
-        player.Status switch
-        {
-            PlayerStatus.Waiting => "Ожидает начала",
-            PlayerStatus.Playing => "Ожидает своего хода",
-            PlayerStatus.Stand => "Завершил ход",
-            PlayerStatus.Bust => "Перебор",
-            PlayerStatus.Won => "Победа!",
-            PlayerStatus.Lost => "Поражение",
-            PlayerStatus.Draw => "Ничья",
-            PlayerStatus.BlackJack => "Блэкджек!",  
-            PlayerStatus.Surrender => "Сдался...",
-            _ => ""
-        };
-} *@
-
-@using BlackJack.Shared
+﻿@using BlackJack.Shared
+@using BlackJack.Client.Services
+@inject GameClientService GameClient
 
 <section class="casino-felt">
-    <!-- Шапка стола с логотипом -->
     <header class="table-header">
         <div class="casino-brand">
             <span class="suit-icon" aria-hidden="true">♠</span>
             <div class="brand-text">
                 <strong>ROYAL BOSS CLUB</strong>
-                <small>BLACKJACK VIP TABLE</small>
+                <small>VIP BLACKJACK LOUNGE</small>
             </div>
         </div>
 
-        <div class="phase-badge @State.GameStatus.ToString().ToLowerInvariant()" role="status">
-            <span class="pulse-dot"></span>
-            @PhaseText
+        <div class="header-controls">
+            @if (GameClient.CanStartGame)
+            {
+                <button class="btn-start-early pulse" @onclick="GameClient.StartGameAsync">
+                    ▶ Раздать карты (@State.Players.Count игр.)
+                </button>
+            }
+
+            <div class="phase-badge @State.GameStatus.ToString().ToLowerInvariant()" role="status">
+                <span class="pulse-dot"></span>
+                @PhaseText
+            </div>
         </div>
     </header>
 
-    <!-- Игровой стол -->
     <div class="felt-surface">
-        <!-- Зона ДИЛЕРА -->
         <section class="dealer-zone">
             <div class="zone-header">
+                <span class="crown">🃁🂡🂱🃑</span>
                 <span class="zone-title">ДИЛЕР КАЗИНО</span>
                 @if (State.DealerCards.Count > 0)
                 {
@@ -201,93 +38,238 @@
                 }
             </div>
 
-            <div class="card-fan">
+            <div class="card-fan dealer-fan">
                 @if (State.DealerCards.Count > 0)
                 {
                     @foreach (var (card, index) in State.DealerCards.Select((c, i) => (c, i)))
                     {
                         <div class="card-wrapper" style="--card-index: @index;">
-                            <img class="card-img"
-                                 src="@CardImage(card)"
-                                 alt="@CardDescription(card)"
-                                 draggable="false" />
+                            <img class="card-img dealer-card" src="@CardImage(card)" alt="@CardDescription(card)" draggable="false" />
                         </div>
                     }
                 }
                 else
                 {
-                    <div class="waiting-box">Ожидание начала раздачи...</div>
+                    <div class="waiting-box">Ожидание начала раунда...</div>
                 }
             </div>
         </section>
 
-        <!-- Водяной знак в центре сукна -->
-        <div class="table-centerpiece" aria-hidden="true">
+        <!-- Водяной знак сукна -->
+        <div class="table-centerpiece">
             <div class="suits-row">♣ ♦ ♠ ♥</div>
-            <div class="rules-mark">BLACKJACK PAYS 3 TO 2 · DEALER MUST STAND ON 17</div>
+            <div class="rules-mark">˗ˋˏ⛀⛁ ⛁⛀ˎˊ˗ · BLACKJACK PAYS 3 TO 2 · ˗ˋˏ⛀⛁ ⛁⛀ˎˊ˗</div>
+            @if (!string.IsNullOrEmpty(State.Message))
+            {
+                <div class="game-announcement">@State.Message</div>
+            }
         </div>
 
-        <!-- Зона ИГРОКОВ (до 5 мест в ряд/полукруг) -->
-        <div class="players-ring players-count-@State.Players.Count">
-            @for (int i = 0; i < State.Players.Count; i++)
-            {
-                var player = State.Players[i];
-                var isCurrent = State.GameStatus == GameStatus.PlayersTurns && State.CurrentPlayerIndex == i;
+        <!-- 2. ДРУГИЕ ИГРОКИ (Соперники сверху) -->
+        @{
+            var rivals = State.Players.Where(p => p.PlayerId != GameClient.ConnectionId).ToList();
+            var myPlayer = State.Players.FirstOrDefault(p => p.PlayerId == GameClient.ConnectionId);
+        }
 
-                <div @key="player.PlayerId"
-                     class="seat @(isCurrent ? "active-turn" : "") status-@player.Status.ToString().ToLowerInvariant()">
+        @if (rivals.Count > 0)
+        {
+            <div class="rivals-row">
+                @foreach (var rival in rivals)
+                {
+                    var isRivalTurn = State.GameStatus == GameStatus.PlayersTurns &&
+                                      State.Players.IndexOf(rival) == State.CurrentPlayerIndex;
 
-                    <div class="seat-top">
-                        <div class="player-info">
-                            <span class="player-avatar">♠</span>
-                            <span class="player-name" title="@player.Name">@player.Name</span>
+                    <div class="rival-seat @(isRivalTurn ? "rival-active" : "")">
+                        <div class="seat-top">
+                            <span class="player-name">
+                                @if (rival.IsHost)
+                                {
+                                    <span title="Хост стола"> ♕ </span>
+                                }
+                                @rival.Name
+                            </span>
+                            @if (rival.Score > 0 && State.GameStatus == GameStatus.Finished)
+                            {
+                                <span class="score-pill small">@rival.Score</span>
+                            }
                         </div>
 
-                        @if (player.Cards.Count > 0 && (player.Score > 0 || isCurrent))
-                        {
-                            <span class="score-pill player-score">@player.Score очк.</span>
-                        }
-                    </div>
+                        <span class="status-label">@(isRivalTurn ? "Ходит..." : StatusText(rival))</span>
 
-                    <div class="status-indicator">
-                        @if (isCurrent)
-                        {
-                            <span class="turn-label"><span class="blink">●</span> Сейчас ходит</span>
-                        }
-                        else
-                        {
-                            <span class="status-label">@StatusText(player)</span>
-                        }
-                    </div>
-
-                    <!-- Карты игрока (раскладываются веером) -->
-                    <div class="card-fan">
-                        @if (player.Cards.Count > 0)
-                        {
-                            @foreach (var (card, index) in player.Cards.Select((c, i) => (c, i)))
+                        <div class="card-fan compact-fan">
+                            @foreach (var (card, index) in rival.Cards.Select((c, i) => (c, i)))
                             {
                                 <div class="card-wrapper" style="--card-index: @index;">
-                                    <img class="card-img"
-                                         src="@CardImage(card)"
-                                         alt="@CardDescription(card)"
-                                         draggable="false" />
+                                    <img class="card-img mini-card" src="@CardImage(card)" draggable="false" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- 3. ТЫ (ПО ЦЕНТРУ ВНИЗУ: КНОПКИ СЛЕВА, КАРТЫ В ЦЕНТРЕ) -->
+        @if (myPlayer != null)
+        {
+            var isMyTurn = State.GameStatus == GameStatus.PlayersTurns &&
+                           State.Players.IndexOf(myPlayer) == State.CurrentPlayerIndex;
+
+            <section class="my-seat @(isMyTurn ? "my-turn" : "")">
+                <div class="my-seat-header">
+                    <div class="my-badge">
+                        <span class="avatar">♠</span>
+                        <strong>@myPlayer.Name (ВЫ)</strong>
+                        @if (myPlayer.IsHost)
+                        {
+                            <span class="host-tag">Сoздатель комнаты</span>
+                        }
+                    </div>
+
+                    <div class="my-score-display">
+                        <span class="label">СЧЁТ:</span>
+                        <span class="score-pill big">@myPlayer.Score очк.</span>
+                    </div>
+
+                    <div class="my-status-box">
+                        <span class="status-pill status-@myPlayer.Status.ToString().ToLowerInvariant()">
+                            @(isMyTurn ? "ВАШ ХОД!" : StatusText(myPlayer))
+                        </span>
+                    </div>
+                </div>
+
+                <!-- СЕТКА: Кнопки ровно СЛЕВА от твоих карт -->
+                <div class="my-hand-area">
+                    <div class="my-controls-left">
+                        <button type="button"
+                                class="casino-btn btn-hit-dark"
+                                disabled="@(IsBusy || !GameClient.IsMyTurn)"
+                                @onclick="() => OnHit.InvokeAsync()">
+                            <span>Взять карту</span>
+                        </button>
+
+                        <button type="button"
+                                class="casino-btn btn-stand-brown"
+                                disabled="@(IsBusy || !GameClient.IsMyTurn)"
+                                @onclick="() => OnStand.InvokeAsync()">
+                            <span>Хватит</span>
+                        </button>
+
+                        <button type="button"
+                                class="casino-btn btn-surrender-black"
+                                disabled="@(IsBusy || !GameClient.IsMyTurn)"
+                                @onclick="() => OnSurrender.InvokeAsync()">
+                            <span>Сдаться</span>
+                        </button>
+                    </div>
+
+                    <div class="my-cards-fan">
+                        @if (myPlayer.Cards.Count > 0)
+                        {
+                            @foreach (var (card, index) in myPlayer.Cards.Select((c, i) => (c, i)))
+                            {
+                                <div class="card-wrapper my-card" style="--card-index: @index;">
+                                    <img class="card-img main-card" src="@CardImage(card)" alt="@CardDescription(card)" draggable="false" />
                                 </div>
                             }
                         }
                         else
                         {
-                            <div class="empty-seat">Карты не сданы</div>
+                            <div class="empty-hand">Ожидайте раздачи карт...</div>
                         }
                     </div>
                 </div>
-            }
-        </div>
+            </section>
+        }
     </div>
 
-    <!-- Подвал сукна -->
+    @if (State.GameStatus == GameStatus.Finished)
+    {
+        var me = State.Players.FirstOrDefault(p => p.PlayerId == GameClient.ConnectionId);
+
+        <div class="round-modal-overlay">
+            <div class="round-modal">
+
+                @if (me != null)
+                {
+                    @if (me.Status == PlayerStatus.BlackJack)
+                    {
+                        <h2 class="hero-result hero-win">$$$ БЛЭКДЖЕК! ВЫ ПОБЕДИЛИ! $$$</h2>
+                    }
+                    else if (me.Status == PlayerStatus.Won)
+                    {
+                        <h2 class="hero-result hero-win">ВЫ ПОБЕДИЛИ!</h2>
+                    }
+                    else if (me.Status == PlayerStatus.Draw)
+                    {
+                        <h2 class="hero-result hero-draw">НИЧЬЯ</h2>
+                    }
+                    else if (me.Status == PlayerStatus.Surrender)
+                    {
+                        <h2 class="hero-result hero-surrender">ВЫ СДАЛИСЬ</h2>
+                    }
+                    else if (me.Status == PlayerStatus.Bust)
+                    {
+                        <h2 class="hero-result hero-loss">✘ ПЕРЕБОР! ВЫ ПРОИГРАЛИ ✘</h2>
+                    }
+                    else
+                    {
+                        <h2 class="hero-result hero-loss">☹ ВЫ ПРОИГРАЛИ</h2>
+                    }
+                }
+
+                <!-- Итог дилера -->
+                <div class="dealer-summary">
+                    <span>🎲 Итог дилера:</span>
+                    <strong class="@(State.DealerScore > 21 ? "text-danger-glow" : "text-gold")">
+                        @State.DealerScore очк. @(State.DealerScore > 21 ? "(Перебор)" : "")
+                    </strong>
+                </div>
+
+                <!-- Таблица очков и статусов ВСЕХ игроков -->
+                <div class="results-board">
+                    @foreach (var p in State.Players)
+                    {
+                        var isMe = p.PlayerId == GameClient.ConnectionId;
+                        <div class="result-row @(isMe ? "result-is-me" : "")">
+                            <div class="res-player">
+                                @if (p.IsHost)
+                                {
+                                    <span>♕</span>
+                                }
+                                <span>@p.Name @(isMe ? "(Вы)" : "")</span>
+                            </div>
+                            <div class="res-score">@p.Score очк.</div>
+                            <div class="res-status status-@p.Status.ToString().ToLowerInvariant()">
+                                @StatusText(p)
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-actions">
+                    @if (GameClient.IsHost)
+                    {
+                        <button class="btn-gold" @onclick="GameClient.PrepareNextRoundAsync">
+                            ↻ Продолжить (вернуться к столу)
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="waiting-host-text">Ожидание решения хоста о следующем раунде...</span>
+                    }
+
+                    <button class="btn-leave-modal" @onclick="GameClient.LeaveRoomAsync">
+                        Нет, встать из-за стола
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
     <footer class="table-footer">
-        <span>Стандартная колода · 36 карт</span>
-        <span>За столом: @State.Players.Count из @State.MaxPlayers игроков</span>
+        <span>VIP CLUB CASINO · 36 КАРТ</span>
+        <span>Мест занято: @State.Players.Count / @State.MaxPlayers</span>
     </footer>
 </section>
 
@@ -295,12 +277,17 @@
     [Parameter, EditorRequired]
     public GameState State { get; set; } = new();
 
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public EventCallback OnHit { get; set; }
+    [Parameter] public EventCallback OnStand { get; set; }
+    [Parameter] public EventCallback OnSurrender { get; set; }
+
     private string PhaseText => State.GameStatus switch
     {
-        GameStatus.WaitingForPlayers => "Ожидаем игроков",
+        GameStatus.WaitingForPlayers => "Ожидание",
         GameStatus.PlayersTurns => "Ходы игроков",
         GameStatus.DealerTurns => "Ход дилера",
-        GameStatus.Finished => "Партия завершена",
+        GameStatus.Finished => "Итоги раунда",
         _ => "Игра"
     };
 
@@ -324,38 +311,29 @@
 
     private static string CardImage(Card card)
     {
-        if ((int)card.Rank < 6)
-        {
-            return "images/cards/boss/back.png";
-        }
-
+        if ((int)card.Rank < 6) return "images/cards/boss/back.png";
         var rank = RankLabel(card.Rank);
         var suit = card.Suit.ToString().ToLowerInvariant();
-
         return $"images/cards/boss/{rank}_{suit}.png";
     }
 
     private static string CardDescription(Card card)
     {
-        if ((int)card.Rank < 6)
-        {
-            return "Закрытая карта";
-        }
+        if ((int)card.Rank < 6) return "Закрытая карта";
         return $"{RankLabel(card.Rank)} {SuitName(card.Suit)}";
     }
 
-    private static string StatusText(Player player) =>
-        player.Status switch
-        {
-            PlayerStatus.Waiting => "Ожидает начала",
-            PlayerStatus.Playing => "Ожидает очереди",
-            PlayerStatus.Stand => "Хватит",
-            PlayerStatus.Bust => "Перебор!",
-            PlayerStatus.Won => "Победа!",
-            PlayerStatus.Lost => "Поражение",
-            PlayerStatus.Draw => "Ничья",
-            PlayerStatus.BlackJack => "Блэкджек!",
-            PlayerStatus.Surrender => "Сдался",
-            _ => ""
-        };
+    private static string StatusText(Player player) => player.Status switch
+    {
+        PlayerStatus.Waiting => "Ожидает",
+        PlayerStatus.Playing => "В игре",
+        PlayerStatus.Stand => "Хватит",
+        PlayerStatus.Bust => "Перебор!",
+        PlayerStatus.Won => "Победа!",
+        PlayerStatus.Lost => "Поражение",
+        PlayerStatus.Draw => "Ничья",
+        PlayerStatus.BlackJack => "Блэкджек!",
+        PlayerStatus.Surrender => "Сдался",
+        _ => ""
+    };
 }

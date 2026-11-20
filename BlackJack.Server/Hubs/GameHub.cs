@@ -150,4 +150,40 @@ public class GameHub : Hub<IGameClient>
             await Clients.Client(connectionId).UpdateGameState(state);
         }
     }
+
+    public async Task StartGame(string roomId)
+    {
+        try
+        {
+            _rooms.StartGame(roomId, Context.ConnectionId);
+            await BroadcastStateToRoom(roomId);
+        }
+        catch (Exception ex)
+        {
+            await Clients.Caller.ShowWarning(ex.Message);
+        }
+    }
+
+    public async Task PrepareNextRound(string roomId)
+    {
+        try
+        {
+            _rooms.ResetToWaiting(roomId, Context.ConnectionId);
+            await BroadcastStateToRoom(roomId);
+        }
+        catch (Exception ex)
+        {
+            await Clients.Caller.ShowWarning(ex.Message);
+        }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        var roomId = _rooms.RemoveDisconnectedPlayer(Context.ConnectionId);
+        if (!string.IsNullOrEmpty(roomId))
+        {
+            await BroadcastStateToRoom(roomId);
+        }
+        await base.OnDisconnectedAsync(exception);
+    }
 }

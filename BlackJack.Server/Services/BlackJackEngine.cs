@@ -73,18 +73,15 @@ public class BlackJackEngine
     public void DealerTurn(GameState state)
     {
         state.GameStatus = GameStatus.DealerTurns;
-
         state.DealerScore = CalculateScore(state.DealerCards);
 
         while (state.DealerScore < 17)
         {
             state.DealerCards.Add(DealCard());
-
             state.DealerScore = CalculateScore(state.DealerCards);
         }
 
         DetermineWinners(state);
-
         state.GameStatus = GameStatus.Finished;
     }
 
@@ -96,15 +93,23 @@ public class BlackJackEngine
         {
             player.Score = CalculateScore(player.Cards);
 
+            // Если игрок сдался — он остается сдавшимся (проиграл досрочно)
+            if (player.Status == PlayerStatus.Surrender)
+            {
+                continue;
+            }
+
+            // Если перебор — статус Bust
             if (player.Score > 21)
             {
-                player.Status = PlayerStatus.Lost;
+                player.Status = PlayerStatus.Bust;
             }
-            else if (dealerScore > 21)
+            // Натуральный Блэкджек (21 с первых 2 карт)
+            else if (player.Score == 21 && player.Cards.Count == 2 && !(dealerScore == 21 && state.DealerCards.Count == 2))
             {
-                player.Status = PlayerStatus.Won;
+                player.Status = PlayerStatus.BlackJack;
             }
-            else if (player.Score > dealerScore)
+            else if (dealerScore > 21 || player.Score > dealerScore)
             {
                 player.Status = PlayerStatus.Won;
             }
@@ -117,6 +122,10 @@ public class BlackJackEngine
                 player.Status = PlayerStatus.Draw;
             }
         }
+
+        state.Message = dealerScore > 21
+            ? $"У дилера перебор ({dealerScore} очк.)!"
+            : $"Дилер остановился на {dealerScore} очк.";
     }
 
     private void MoveToNextPlayer(GameState state)
@@ -129,6 +138,7 @@ public class BlackJackEngine
 
             if (player.Status == PlayerStatus.Playing)
             {
+                state.Message = $"Ход перешел к {player.Name}";
                 return;
             }
 
@@ -136,8 +146,26 @@ public class BlackJackEngine
         }
 
         state.GameStatus = GameStatus.DealerTurns;
-
         DealerTurn(state);
+    }
+
+    public void ResetToWaiting(GameState state)
+    {
+        state.DealerCards.Clear();
+        state.DealerScore = 0;
+        state.CurrentPlayerIndex = 0;
+        state.GameStatus = GameStatus.WaitingForPlayers;
+
+        foreach (var player in state.Players)
+        {
+            player.Cards.Clear();
+            player.Score = 0;
+            player.Status = PlayerStatus.Waiting;
+        }
+
+        state.Message = state.Players.Count < 2
+            ? "Ожидание подключения хотя бы одного соперника..."
+            : $"Игроки готовы ({state.Players.Count}/{state.MaxPlayers}). Хост может начать раунд!";
     }
 
     public void Hit(GameState state, string playerId)
@@ -223,7 +251,6 @@ public class BlackJackEngine
 
         player.Status = PlayerStatus.Surrender;
 
-        // Передаем ход следующему
         MoveToNextPlayer(state);
     }
 }
