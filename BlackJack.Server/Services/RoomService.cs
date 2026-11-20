@@ -22,10 +22,9 @@ namespace BlackJack.Server.Services
                 throw new ArgumentException("Укажи имя игрока.");
             }
 
-            if (maxPlayers < 2)
+            if (maxPlayers < 2 || maxPlayers > 5)
             {
-                throw new ArgumentException(
-                    "В комнате должно быть минимум два игрока.");
+                throw new ArgumentException("В комнате может быть от 2 до 5 игроков.");
             }
 
             while (true)
@@ -48,7 +47,7 @@ namespace BlackJack.Server.Services
                     Status = PlayerStatus.Waiting
                 });
 
-                var update = CreateUpdate(room);
+                var update = CreateUpdate(room, playerId);
 
                 if (_rooms.TryAdd(roomId, room))
                 {
@@ -68,10 +67,9 @@ namespace BlackJack.Server.Services
 
             lock (room.SyncRoot)
             {
-                // Повторное присоединение не создаёт второго игрока.
                 if (room.State.Players.Any(p => p.PlayerId == playerId))
                 {
-                    return CreateUpdate(room);
+                    return CreateUpdate(room, playerId);
                 }
 
                 if (room.State.GameStatus != GameStatus.WaitingForPlayers)
@@ -96,7 +94,7 @@ namespace BlackJack.Server.Services
                     room.Engine.StartNewGame(room.State);
                 }
 
-                return CreateUpdate(room);
+                return CreateUpdate(room, playerId);
             }
         }
 
@@ -117,7 +115,7 @@ namespace BlackJack.Server.Services
             return room;
         }
 
-        private static RoomUpdate CreateUpdate(GameRoom room)
+        private static RoomUpdate CreateUpdate(GameRoom room, string targetPlayerId)
         {
             return new RoomUpdate
             {
@@ -129,17 +127,23 @@ namespace BlackJack.Server.Services
                     GameStatus = room.State.GameStatus,
                     DealerScore = room.State.DealerScore,
 
-                    DealerCards = room.State.DealerCards
-                        .Select(CopyCard)
-                        .ToList(),
+                    DealerCards = room.State.DealerCards.Select(CopyCard).ToList(),
 
                     Players = room.State.Players.Select(player => new Player
                     {
                         PlayerId = player.PlayerId,
                         Name = player.Name,
-                        Score = player.Score,
+
+                        Score = (player.PlayerId == targetPlayerId || room.State.GameStatus == GameStatus.Finished)
+                            ? player.Score
+                            : 0,
+
                         Status = player.Status,
-                        Cards = player.Cards.Select(CopyCard).ToList()
+
+                        Cards = player.PlayerId == targetPlayerId 
+                            ? player.Cards.Select(CopyCard).ToList() 
+                            : player.Cards.Select(c => new Card { Suit = default, Rank = default }).ToList()
+
                     }).ToList()
                 }
             };
@@ -162,7 +166,7 @@ namespace BlackJack.Server.Services
             {
                 room.Engine.Hit(room.State, playerId);
 
-                return CreateUpdate(room);
+                return CreateUpdate(room, playerId);
             }
         }
 
@@ -174,8 +178,55 @@ namespace BlackJack.Server.Services
             {
                 room.Engine.Stand(room.State, playerId);
 
-                return CreateUpdate(room);
+                return CreateUpdate(room, playerId);
             }
+        }
+
+        public RoomUpdate Surrender(string roomId, string playerId)
+        {
+            var room = GetRoom(roomId);
+
+            lock (room.SyncRoot)
+            {
+                room.Engine.Surrender(room.State, playerId);
+                return CreateUpdate(room, playerId);
+            }
+        }
+        public RoomUpdate LeaveRoom(string roomId, string playerId)
+        {
+            var room = GetRoom(roomId);
+
+            lock (room.SyncRoot)
+            {
+                var player = room.State.Players.FirstOrDefault(p => p.PlayerId == playerId);
+                if (player != null)
+                {
+                    room.State.Players.Remove(player);
+                }
+               
+                if (room.State.Players.Count == 0)
+                {
+                    _rooms.TryRemove(roomId, out _);
+                }
+
+                return CreateUpdate(room, playerId);
+            }
+        }
+
+        public Dictionary<string, GameState> GetRoomUpdatesForEveryone(string roomId)
+        {
+            var room = GetRoom(roomId);
+            var dict = new Dictionary<string, GameState>();
+
+            lock (room.SyncRoot)
+            {
+                foreach (var player in room.State.Players)
+                {
+                    var update = CreateUpdate(room, player.PlayerId);
+                    dict[player.PlayerId] = update.State;
+                }
+            }
+            return dict;
         }
     }
 }

@@ -32,11 +32,9 @@ public class GameHub : Hub<IGameClient>
 
         await Groups.AddToGroupAsync(Context.ConnectionId, update.RoomId);
 
-        await Clients.Caller.ReceiveMessage(
-            $"Комната создана. Код: {update.RoomId}");
+        await Clients.Caller.ReceiveMessage($"Комната создана. Код: {update.RoomId}");
 
-        await Clients.Group(update.RoomId)
-            .UpdateGameState(update.State);
+        await BroadcastStateToRoom(update.RoomId);
 
         return update.RoomId;
     }
@@ -76,8 +74,7 @@ public class GameHub : Hub<IGameClient>
                 $"{update.State.MaxPlayers}");
         }
 
-        await Clients.Group(update.RoomId)
-            .UpdateGameState(update.State);
+        await BroadcastStateToRoom(update.RoomId);
 
         return update.RoomId;
     }
@@ -89,6 +86,7 @@ public class GameHub : Hub<IGameClient>
         try
         {
             update = _rooms.Hit(roomId, Context.ConnectionId);
+            await BroadcastStateToRoom(update.RoomId);
         }
         catch (InvalidOperationException exception)
         {
@@ -100,9 +98,6 @@ public class GameHub : Hub<IGameClient>
             await Clients.Caller.ShowWarning(exception.Message);
             return;
         }
-
-        await Clients.Group(update.RoomId)
-            .UpdateGameState(update.State);
     }
 
     public async Task Stand(string roomId)
@@ -112,6 +107,7 @@ public class GameHub : Hub<IGameClient>
         try
         {
             update = _rooms.Stand(roomId, Context.ConnectionId);
+            await BroadcastStateToRoom(update.RoomId);
         }
         catch (InvalidOperationException exception)
         {
@@ -123,8 +119,35 @@ public class GameHub : Hub<IGameClient>
             await Clients.Caller.ShowWarning(exception.Message);
             return;
         }
+    }
 
-        await Clients.Group(update.RoomId)
-            .UpdateGameState(update.State);
+    public async Task Surrender(string roomId)
+    {
+        try
+        {
+            _rooms.Surrender(roomId, Context.ConnectionId);
+            await BroadcastStateToRoom(roomId);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+        {
+            await Clients.Caller.ShowWarning(exception.Message);
+        }
+    }
+
+    public async Task LeaveRoom(string roomId)
+    {
+        _rooms.LeaveRoom(roomId, Context.ConnectionId);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
+        await BroadcastStateToRoom(roomId);
+    }
+
+    private async Task BroadcastStateToRoom(string roomId)
+    {
+        var updates = _rooms.GetRoomUpdatesForEveryone(roomId);
+
+        foreach (var (connectionId, state) in updates)
+        {
+            await Clients.Client(connectionId).UpdateGameState(state);
+        }
     }
 }

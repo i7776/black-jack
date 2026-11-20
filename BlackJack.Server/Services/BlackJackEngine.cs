@@ -211,4 +211,19 @@ public class BlackJackEngine
 
         MoveToNextPlayer(state);
     }
+
+    public void Surrender(GameState state, string playerId)
+    {
+        if (state.GameStatus != GameStatus.PlayersTurns)
+            throw new InvalidOperationException("Сейчас нельзя сдаться.");
+
+        var player = state.Players[state.CurrentPlayerIndex];
+        if (player.PlayerId != playerId)
+            throw new InvalidOperationException("Сейчас ход другого игрока.");
+
+        player.Status = PlayerStatus.Surrender;
+
+        // Передаем ход следующему
+        MoveToNextPlayer(state);
+    }
 }

@@ -4,167 +4,178 @@
 @inject GameClientService GameClient
 @implements IDisposable
 
-<PageTitle>Проверка комнат BlackJack</PageTitle>
+<PageTitle>Boss Club · Blackjack</PageTitle>
 
-<h1>Проверка комнат</h1>
+<div class="lobby-wrapper">
+    @if (GameClient.State is null)
+    {
+        <!-- ЭКРАН ВХОДА И СОЗДАНИЯ КОМНАТЫ -->
+        <main class="login-card">
+            <div class="login-header">
+                <span class="gold-spade">♠</span>
+                <h2>ROYAL BLACKJACK</h2>
+                <p>Эксклюзивный онлайн-клуб на SignalR</p>
+            </div>
 
-<p>
-    Подключение:
-    <strong>
-        @(GameClient.IsConnected ? "установлено" : "не установлено")
-    </strong>
-</p>
+            <div class="login-body">
+                <!-- Статус соединения -->
+                <div class="conn-bar">
+                    <span class="status-indicator @(GameClient.IsConnected ? "online" : "offline")"></span>
+                    <span>@(GameClient.IsConnected ? "Подключено к серверу" : "Оффлайн")</span>
+                    @if (!GameClient.IsConnected)
+                    {
+                        <button class="action-link" disabled="@isBusy" @onclick="Connect">
+                            Подключиться
+                        </button>
+                    }
+                </div>
 
-<button type="button"
-        class="btn btn-primary"
-        disabled="@(isBusy || GameClient.IsConnected)"
-        @onclick="Connect">
-    Подключиться
-</button>
+                <div class="field-group">
+                    <label>Ваш псевдоним</label>
+                    <input class="custom-input" placeholder="Введите имя..." @bind="playerName" />
+                </div>
 
-<hr />
+                <!-- Блок создания комнаты на 2-5 человек -->
+                <section class="option-panel">
+                    <h4>Создать стол</h4>
+                    <div class="field-group-inline">
+                        <label>Количество мест (2–5):</label>
+                        <div class="stepper">
+                            <button type="button" @onclick="() => ChangeMaxPlayers(-1)">-</button>
+                            <span class="stepper-val">@maxPlayers</span>
+                            <button type="button" @onclick="() => ChangeMaxPlayers(1)">+</button>
+                        </div>
+                    </div>
+                    <button class="btn-gold" disabled="@(!CanEnterRoom)" @onclick="CreateRoom">
+                        Создать приватный стол
+                    </button>
+                </section>
 
-<div class="mb-3">
-    <label for="player-name" class="form-label">
-        Имя игрока
-    </label>
+                <div class="or-separator"><span>ИЛИ</span></div>
 
-    <input id="player-name"
-           class="form-control"
-           disabled="@(isBusy || GameClient.State is not null)"
-           @bind="playerName" />
-</div>
+                <!-- Блок входа по коду -->
+                <section class="option-panel">
+                    <h4>Присоединиться к столу</h4>
+                    <input class="custom-input uppercase"
+                           placeholder="КОД ИЗ 6 СИМВОЛОВ"
+                           maxlength="6"
+                           @bind="roomCode" />
+                    <button class="btn-green" disabled="@(!CanEnterRoom)" @onclick="JoinRoom">
+                        Войти в игру
+                    </button>
+                </section>
+            </div>
+        </main>
+    }
+    else
+    {
+        <!-- ЭКРАН ИГРЫ -->
+        <div class="table-view">
+            <!-- Верхняя плашка управления -->
+            <div class="top-nav-bar">
+                <div class="room-pill">
+                    <span class="room-label">СТОЛ:</span>
+                    <strong class="room-code">@GameClient.RoomId</strong>
+                </div>
 
-<button type="button"
-        class="btn btn-success"
-        disabled="@(!CanEnterRoom)"
-        @onclick="CreateRoom">
-    Создать комнату на двоих
-</button>
+                <button class="btn-leave" disabled="@isBusy" @onclick="Leave">
+                    <i class="bi bi-door-open me-1"></i> Выйти из-за стола
+                </button>
+            </div>
 
-<hr />
+            <!-- Сукно стола с картами и игроками -->
+            <GameTable State="GameClient.State" />
 
-<div class="mb-3">
-    <label for="room-code" class="form-label">
-        Код существующей комнаты
-    </label>
+            <!-- ПЛАВАЮЩАЯ ПАНЕЛЬ ДЕЙСТВИЙ (Активна строго в свой ход!) -->
+            <nav class="action-dock @(GameClient.IsMyTurn ? "dock-active" : "dock-disabled")">
+                <div class="dock-content">
+                    <button type="button"
+                            class="action-btn btn-hit"
+                            disabled="@(isBusy || !GameClient.IsMyTurn)"
+                            @onclick="() => RunAsync(GameClient.HitAsync)">
+                        <span class="btn-icon">➕</span> Взять карту
+                    </button>
 
-    <input id="room-code"
-           class="form-control"
-           disabled="@(isBusy || GameClient.State is not null)"
-           @bind="roomCode" />
-</div>
+                    <button type="button"
+                            class="action-btn btn-stand"
+                            disabled="@(isBusy || !GameClient.IsMyTurn)"
+                            @onclick="() => RunAsync(GameClient.StandAsync)">
+                        <span class="btn-icon">✋</span> Хватит
+                    </button>
 
-<button type="button"
-        class="btn btn-secondary"
-        disabled="@(!CanEnterRoom)"
-        @onclick="JoinRoom">
-    Войти в комнату
-</button>
-
-@if (!string.IsNullOrWhiteSpace(error))
-{
-    <div class="alert alert-danger mt-3" role="alert">
-        @error
-    </div>
-}
-
-@if (!string.IsNullOrWhiteSpace(GameClient.Warning))
-{
-    <div class="alert alert-warning mt-3" role="alert">
-        @GameClient.Warning
-    </div>
-}
-
-@if (!string.IsNullOrWhiteSpace(GameClient.Message))
-{
-    <div class="alert alert-info mt-3" role="status">
-        @GameClient.Message
-    </div>
-}
-
-@if (GameClient.State is { } state)
-{
-    <div class="mt-4">
-        <p>Комната <strong>@GameClient.RoomId</strong></p>
-
-        <GameTable State="state" />
-
-        <div class="d-flex flex-wrap gap-3 mt-3">
-            <button type="button"
-                    class="btn btn-success"
-                    disabled="@(isBusy || !GameClient.IsMyTurn)"
-                    @onclick="() => RunAsync(GameClient.HitAsync)">
-                Взять карту
-            </button>
-
-            <button type="button"
-                    class="btn btn-warning"
-                    disabled="@(isBusy || !GameClient.IsMyTurn)"
-                    @onclick="() => RunAsync(GameClient.StandAsync)">
-                Хватит
-            </button>
+                    <button type="button"
+                            class="action-btn btn-surrender"
+                            disabled="@(isBusy || !GameClient.IsMyTurn)"
+                            @onclick="() => RunAsync(GameClient.SurrenderAsync)">
+                        <span class="btn-icon">🏳️</span> Сдаться
+                    </button>
+                </div>
+            </nav>
         </div>
-    </div>
-}
+    }
+
+    <!-- Всплывающие уведомления -->
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="toast-alert alert-error">@error</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(GameClient.Warning))
+    {
+        <div class="toast-alert alert-warning">@GameClient.Warning</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(GameClient.Message))
+    {
+        <div class="toast-alert alert-info">@GameClient.Message</div>
+    }
+</div>
 
 @code {
     private string playerName = string.Empty;
     private string roomCode = string.Empty;
+    private int maxPlayers = 2;
     private string? error;
     private bool isBusy;
 
-    // разрешаем вход, пока игрок ещё не находится в комнате
     private bool CanEnterRoom =>
         !isBusy &&
         GameClient.IsConnected &&
-        GameClient.State is null;
+        GameClient.State is null &&
+        !string.IsNullOrWhiteSpace(playerName);
 
     protected override void OnInitialized()
     {
-        // подписываем страницу на изменения сервиса
         GameClient.Changed += OnGameChanged;
     }
 
     private void OnGameChanged()
     {
-        // обновляем интерфейс после сообщения сервера
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private Task Connect()
+    private void ChangeMaxPlayers(int delta)
     {
-        return RunAsync(GameClient.ConnectAsync);
+        maxPlayers = Math.Clamp(maxPlayers + delta, 2, 5);
     }
 
-    private Task CreateRoom()
-    {
-        return RunAsync(
-            () => GameClient.CreateRoomAsync(playerName, 2));
-    }
+    private Task Connect() => RunAsync(GameClient.ConnectAsync);
 
-    private Task JoinRoom()
-    {
-        return RunAsync(
-            () => GameClient.JoinRoomAsync(roomCode, playerName));
-    }
+    private Task CreateRoom() => RunAsync(() => GameClient.CreateRoomAsync(playerName, maxPlayers));
+
+    private Task JoinRoom() => RunAsync(() => GameClient.JoinRoomAsync(roomCode, playerName));
+
+    private Task Leave() => RunAsync(GameClient.LeaveRoomAsync);
 
     private async Task RunAsync(Func<Task> action)
     {
-        // не допускаем повторных нажатий во время запроса
         isBusy = true;
         error = null;
-
         try
         {
             await action();
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            Console.Error.WriteLine(exception);
-
-            error = "Не удалось выполнить запрос. " +
-                    "Проверь запуск сервера и соединение.";
+            error = ex.Message;
         }
         finally
         {
@@ -174,7 +185,6 @@
 
     public void Dispose()
     {
-        // убираем подписку при уходе со страницы
         GameClient.Changed -= OnGameChanged;
     }
 }

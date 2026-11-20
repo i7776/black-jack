@@ -1,4 +1,4 @@
-﻿.casino {
+﻿/*.casino {
     padding: clamp(16px, 3vw, 32px);
     color: #f6eedc;
     background: #101c18;
@@ -225,5 +225,329 @@
 
     .playing-card {
         width: 88px;
+    }
+}
+*/
+
+/* Внешняя рама стола */
+.casino-felt {
+    background: #08120d;
+    padding: clamp(14px, 2.5vw, 28px);
+    border-radius: 30px;
+    color: #f7eedb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none;
+}
+
+/* Шапка над столом */
+.table-header, .table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+}
+
+.table-header {
+    margin-bottom: 18px;
+}
+
+.casino-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.suit-icon {
+    font-size: 32px;
+    color: #e5c378;
+    filter: drop-shadow(0 0 6px rgba(229, 195, 120, 0.4));
+}
+
+.brand-text strong {
+    display: block;
+    font-size: 17px;
+    letter-spacing: 3px;
+    color: #faecd0;
+}
+
+.brand-text small {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: #8fa797;
+}
+
+/* Бейдж текущей фазы */
+.phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #d8b97455;
+    color: #faecd0;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 8px #4ade80;
+    animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.8);
+    }
+}
+
+/* САМО СУКНО ПОКЕРНОГО СТОЛА */
+.felt-surface {
+    position: relative;
+    padding: 34px 20px 28px;
+    background: radial-gradient(ellipse at 50% 25%, #237b54 0%, #175439 55%, #0d3222 100%);
+    border: 14px solid #362013;
+    border-radius: 120px 120px 60px 60px;
+    box-shadow: 0 0 0 2px #d4b06a, inset 0 0 0 3px rgba(212, 176, 106, 0.4), inset 0 0 60px rgba(0, 0, 0, 0.7), 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+/* Зона Дилера */
+.dealer-zone {
+    max-width: 420px;
+    margin: 0 auto 20px;
+    padding: 14px 18px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1.5px dashed rgba(229, 195, 120, 0.3);
+    border-radius: 24px;
+    text-align: center;
+}
+
+.zone-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.zone-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #e5c378;
+}
+
+.score-pill {
+    padding: 3px 12px;
+    border-radius: 14px;
+    background: #d4b06a;
+    color: #1a1008;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ВЕЕР КАРТ (Карты ложатся внахлест!) */
+.card-fan {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 115px;
+    padding: 6px 0;
+}
+
+.card-wrapper {
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), z-index 0.2s;
+    position: relative;
+}
+
+    .card-wrapper + .card-wrapper {
+        margin-left: -32px; /* Каскадное наложение карт */
+    }
+
+    .card-wrapper:hover {
+        transform: translateY(-12px) scale(1.08);
+        z-index: 50 !important;
+    }
+
+.card-img {
+    width: clamp(66px, 7vw, 86px);
+    height: auto;
+    border-radius: 7px;
+    box-shadow: -2px 4px 14px rgba(0, 0, 0, 0.6);
+    display: block;
+}
+
+.waiting-box, .empty-seat {
+    color: rgba(250, 236, 208, 0.4);
+    font-size: 12px;
+    font-style: italic;
+    padding: 30px 0;
+}
+
+/* Водяной знак по центру стола */
+.table-centerpiece {
+    text-align: center;
+    margin: 22px 0 30px;
+    pointer-events: none;
+}
+
+.suits-row {
+    font-size: 22px;
+    letter-spacing: 16px;
+    color: rgba(229, 195, 120, 0.25);
+    margin-bottom: 6px;
+}
+
+.rules-mark {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(229, 195, 120, 0.35);
+    font-weight: 600;
+}
+
+/* ЗОНА РАССАДКИ ИГРОКОВ (До 5 человек!) */
+.players-ring {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    justify-content: center;
+    align-items: stretch;
+}
+
+/* Если ровно 5 игроков, даем аккуратную пятиколоночную сетку */
+@media (min-width: 1050px) {
+    .players-count-5 {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Место игрока */
+.seat {
+    background: rgba(10, 36, 25, 0.6);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+    /* ПОДСВЕТКА АКТИВНОГО ИГРОКА (Золотой неоновый импульс) */
+    .seat.active-turn {
+        background: rgba(15, 52, 36, 0.9);
+        border-color: #ffd700;
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.45), inset 0 0 15px rgba(255, 215, 0, 0.2);
+        transform: translateY(-4px) scale(1.02);
+    }
+
+.seat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.player-avatar {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(229, 195, 120, 0.15);
+    border: 1px solid rgba(229, 195, 120, 0.4);
+    color: #e5c378;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.player-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #faecd0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-indicator {
+    min-height: 18px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    text-align: center;
+}
+
+.turn-label {
+    color: #ffd700;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.blink {
+    color: #4ade80;
+    animation: pulse 1s infinite;
+}
+
+.status-label {
+    color: #9cb5a4;
+}
+
+/* Расцветка статусов финала */
+.status-won .status-label, .status-blackjack .status-label {
+    color: #4ade80;
+    font-weight: bold;
+}
+
+.status-bust .status-label, .status-lost .status-label {
+    color: #f87171;
+    font-weight: bold;
+}
+
+.status-surrender .status-label {
+    color: #fbbf24;
+}
+
+.table-footer {
+    margin-top: 20px;
+    font-size: 11px;
+    color: #6c8474;
+}
+
+/* Адаптив для планшетов и телефонов */
+@media (max-width: 768px) {
+    .felt-surface {
+        border-width: 8px;
+        border-radius: 40px;
+        padding: 20px 10px;
+    }
+
+    .players-ring {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card-wrapper + .card-wrapper {
+        margin-left: -22px;
     }
 }

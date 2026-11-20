@@ -114,7 +114,24 @@ public class GameClientService : IAsyncDisposable
 
         Changed?.Invoke();
     }
+    public async Task LeaveRoomAsync()
+    {
+        if (!IsConnected || string.IsNullOrWhiteSpace(RoomId))
+            return;
 
+        await _connection.InvokeAsync("LeaveRoom", RoomId);
+        RoomId = null;
+        State = null;
+        Changed?.Invoke();
+    }
+
+    public async Task SurrenderAsync()
+    {
+        if (!IsConnected || string.IsNullOrWhiteSpace(RoomId))
+            throw new InvalidOperationException("Нет подключения к комнате.");
+
+        await _connection.InvokeAsync("Surrender", RoomId);
+    }
     public bool IsMyTurn
     {
         get
